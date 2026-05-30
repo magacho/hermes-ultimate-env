@@ -75,12 +75,11 @@ Após uma release, valide a assinatura keyless da imagem no GHCR:
 
 ```bash
 IMAGE=ghcr.io/<owner>/<repo>:latest
-OWNER=<owner>
-REPO=<repo>
-# Substitua <owner>/<repo> pelos valores reais do seu projeto.
+# Substitua <owner>/<repo> pelos valores reais do seu projeto
+# (identificador literal no parâmetro --certificate-identity-regexp).
 
 cosign verify "$IMAGE" \
-  --certificate-identity-regexp "^https://github.com/${OWNER}/${REPO}/.github/workflows/release.yml@refs/tags/.+$" \
+  --certificate-identity-regexp "^https://github.com/<owner>/<repo>/.github/workflows/release.yml@refs/tags/.+$" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 ```
 
