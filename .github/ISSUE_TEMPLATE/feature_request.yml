@@ -1,0 +1,37 @@
+name: "✨ Feature request"
+description: "Propor uma nova funcionalidade ou melhoria para o ambiente"
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema / motivação
+      description: Que necessidade ou dor esta feature resolve?
+      placeholder: "Hoje, ao fazer X, acontece Y..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposta
+      description: O que você gostaria que fosse feito?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área
+      options:
+        - Dockerfile / ferramentas
+        - CI/CD (workflows)
+        - Segurança
+        - Documentação
+        - Outra
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+    validations:
+      required: false

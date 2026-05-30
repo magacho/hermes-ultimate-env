@@ -76,24 +76,17 @@ Para usar a imagem publicada com o compose, troque o bloco `build:` por
 
 ## CI/CD — Publicação automática no GHCR
 
-O workflow `.github/workflows/build-and-push.yml`:
+O pipeline (`.github/workflows/ci.yml` e `release.yml`) valida e publica via GitHub.
+Visão geral aqui; detalhes completos em [CICD.md](CICD.md).
 
-- **Dispara** em: criação de *tag* `v*`, publicação de *release*, ou manualmente
-  (`workflow_dispatch`). **Não** roda a cada push para `main`, para evitar falhas ruidosas
-  enquanto as pendências de build não estão resolvidas.
-- **Builda** para `linux/amd64` e `linux/arm64` via `buildx` + QEMU.
-- **Publica** no GHCR (`ghcr.io/<owner>/<repo>`) com tags derivadas da versão
-  (`X.Y.Z`, `X.Y`, `latest`).
-- **Autentica** com o `GITHUB_TOKEN` automático (permissão `packages: write`) — nenhum
-  segredo adicional é necessário para publicar no GHCR do próprio repositório.
+- **CI** (PRs/push para `main`): lint, secret-scan, build, smoke test e Trivy informativo.
+- **Release** (tags `vX.Y.Z`/`bX.Y.Z`): build multi-arch `amd64`+`arm64`, **gate de Trivy
+  (falha em CVE CRITICAL)**, push no GHCR e GitHub Release.
+- Autentica com o `GITHUB_TOKEN` automático — nenhum segredo adicional necessário.
 
 ### Como lançar uma versão
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
-# (ou crie uma Release pela UI do GitHub)
+git tag v1.0.0 && git push origin v1.0.0   # estável → tags X.Y.Z, X.Y, latest
+git tag b1.1.0 && git push origin b1.1.0   # beta    → tags X.Y.Z-beta, beta (pre-release)
 ```
-
-> ⚠️ O build multi-arch só terá sucesso depois de resolver a pendência de arquitetura
-> do `Dockerfile` (binários ARM64 fixos). Veja [VERSIONS.md](VERSIONS.md#pend%C3%AAncias-conhecidas).

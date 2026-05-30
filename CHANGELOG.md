@@ -10,9 +10,16 @@ e o projeto adota [SemVer](https://semver.org/lang/pt-BR/).
 - Estrutura de repositório para manutenção via GitHub.
 - `.gitignore` cobrindo segredos (`.env`), chaves SSH, sessões de navegador e configs de nuvem.
 - Documentação em `docs/`: `INSTALL`, `TOOLS`, `VERSIONS`, `CREDENTIALS`, `SECURITY`.
-- Workflow de CI (`.github/workflows/build-and-push.yml`) para build multi-arch
-  (amd64 + arm64) e publicação no GitHub Container Registry.
 - `CHANGELOG.md`.
+- **Pipeline CI/CD (GitHub-only):**
+  - `ci.yml` — lint (hadolint/shellcheck), secret-scan (gitleaks), build, smoke test
+    (`scripts/smoke-test.sh`) e Trivy informativo (SARIF → aba Security).
+  - `release.yml` — tags `vX.Y.Z` (estável) e `bX.Y.Z` (beta): build multi-arch,
+    **gate de Trivy (falha em CVE CRITICAL)**, push no GHCR e GitHub Release
+    (beta = pre-release).
+  - Substitui o antigo `build-and-push.yml`.
+- `scripts/smoke-test.sh` reutilizável (CI + local).
+- Templates de issue do GitHub (`.github/ISSUE_TEMPLATE/`: feature/bug) e `docs/CICD.md`.
 - Bloco de `ARG` no topo do `Dockerfile` como fonte única de verdade das versões.
 - Verificação de checksum (sha256) no download do gogcli.
 - **`.dockerignore`** (segurança + tamanho): exclui `user_data/`, `.env`, `.git`, `docs/` do

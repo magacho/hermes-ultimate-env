@@ -1,0 +1,41 @@
+name: "🐞 Bug report"
+description: "Reportar algo que não funciona como esperado na imagem ou no pipeline"
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: O que aconteceu?
+      description: Descreva o comportamento observado.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que era esperado?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Passos para reproduzir
+      placeholder: |
+        1. docker compose up --build -d
+        2. docker compose exec hermes ...
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: image
+    attributes:
+      label: Tag/versão da imagem
+      placeholder: "ex.: ghcr.io/magacho/hermes-ultimate-env:0.1.0 ou build local"
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / saída relevante
+      render: shell
+    validations:
+      required: false

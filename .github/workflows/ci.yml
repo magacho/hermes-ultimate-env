@@ -1,0 +1,74 @@
+name: CI
+
+# Validação contínua: lint, varredura de segredos, build da imagem, smoke test
+# e scan de vulnerabilidades (informativo). Roda em PRs, push para main e manualmente.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write   # upload do SARIF do Trivy/gitleaks
+
+jobs:
+  lint:
+    name: Lint (Dockerfile + shell)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hadolint (Dockerfile)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          failure-threshold: error   # warnings não bloqueiam
+      - name: ShellCheck
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          shellcheck welcome.sh scripts/smoke-test.sh || true
+
+  secret-scan:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-smoke:
+    name: Build + smoke + Trivy (informativo)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (amd64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: hermes-ci:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test
+        run: |
+          docker run --rm -v "$PWD/scripts:/scripts:ro" \
+            --entrypoint bash hermes-ci:test /scripts/smoke-test.sh
+      - name: Trivy (SARIF informativo)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: hermes-ci:test
+          format: sarif
+          output: trivy.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+          ignore-unfixed: true
+      - name: Upload SARIF para a aba Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif

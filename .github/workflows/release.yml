@@ -1,0 +1,137 @@
+name: Release
+
+# Dispara em tags de versão:
+#   vX.Y.Z  -> release estável  (GHCR: X.Y.Z, X.Y, latest)
+#   bX.Y.Z  -> release beta      (GHCR: X.Y.Z-beta, beta)
+# Fluxo: build amd64 -> Trivy (gate em CRITICAL) -> build multi-arch + push GHCR
+#        -> GitHub Release (beta = pre-release).
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'b[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag a publicar (vX.Y.Z ou bX.Y.Z)'
+        required: true
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write          # criar GitHub Release
+      packages: write          # push no GHCR
+      security-events: write   # upload do SARIF
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Resolver tag, canal e tags de imagem
+        id: meta
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          case "$TAG" in
+            v[0-9]*) CHANNEL=stable ;;
+            b[0-9]*) CHANNEL=beta ;;
+            *) echo "::error::Tag '$TAG' não segue vX.Y.Z nem bX.Y.Z"; exit 1 ;;
+          esac
+          VERSION="${TAG#?}"                      # remove o primeiro caractere (v|b)
+          IMG="$(echo "${REGISTRY}/${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')"
+          if [ "$CHANNEL" = stable ]; then
+            MINOR="${VERSION%.*}"
+            TAGS="${IMG}:${VERSION},${IMG}:${MINOR},${IMG}:latest"
+            PRERELEASE=false
+          else
+            TAGS="${IMG}:${VERSION}-beta,${IMG}:beta"
+            PRERELEASE=true
+          fi
+          {
+            echo "tag=$TAG"
+            echo "channel=$CHANNEL"
+            echo "version=$VERSION"
+            echo "image=$IMG"
+            echo "tags=$TAGS"
+            echo "prerelease=$PRERELEASE"
+          } >> "$GITHUB_OUTPUT"
+          echo "Canal=$CHANNEL Versão=$VERSION Tags=$TAGS"
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 1) Build amd64 local — alvo do scan (gate ANTES de publicar)
+      - name: Build (amd64) para scan
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: scan-target:${{ steps.meta.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 2) Trivy — relatório SARIF (não bloqueia) para a aba Security
+      - name: Trivy (SARIF)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: scan-target:${{ steps.meta.outputs.version }}
+          format: sarif
+          output: trivy.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+          ignore-unfixed: true
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
+
+      # 3) Trivy — gate: falha a release se houver CVE CRITICAL (corrigível)
+      - name: Trivy (gate CRITICAL)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: scan-target:${{ steps.meta.outputs.version }}
+          format: table
+          severity: CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+
+      # 4) Build multi-arch + push no GHCR (só após passar no gate)
+      - name: Build & push (linux/amd64, linux/arm64)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      # 5) GitHub Release (beta = pre-release)
+      - name: Criar GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ${{ steps.meta.outputs.tag }}
+          prerelease: ${{ steps.meta.outputs.prerelease }}
+          generate_release_notes: true
+          body: |
+            Canal: **${{ steps.meta.outputs.channel }}**
+
+            Imagem publicada no GHCR:
+            ```
+            ${{ steps.meta.outputs.tags }}
+            ```

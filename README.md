@@ -37,6 +37,7 @@ Seu workspace fica em `/home/hermes/workspaces/`. Toda configuração e sessão 
 | [docs/VERSIONS.md](docs/VERSIONS.md)       | Versões instaladas / declaradas |
 | [docs/CREDENTIALS.md](docs/CREDENTIALS.md) | Como fornecer chaves e fazer login nas CLIs |
 | [docs/SECURITY.md](docs/SECURITY.md)       | Modelo de segurança e gestão de chaves |
+| [docs/CICD.md](docs/CICD.md)               | Pipeline de CI/CD, releases e scan de vulnerabilidades |
 | [CHANGELOG.md](CHANGELOG.md)               | Histórico de versões |
 
 ---
@@ -64,11 +65,22 @@ hermes-ultimate-env/
 
 ---
 
-## Publicação da imagem (GHCR)
+## CI/CD e publicação da imagem
 
-O workflow em `.github/workflows/build-and-push.yml` builda a imagem **multi-arch
-(amd64 + arm64)** e publica no **GitHub Container Registry** ao criar uma *tag* `v*`
-ou uma *release*. Detalhes em [docs/INSTALL.md](docs/INSTALL.md).
+Tudo vive no GitHub (código, imagem no GHCR, issues, releases). Resumo:
+
+- **CI** (`ci.yml`): em PRs/push — lint, secret-scan (gitleaks), build, smoke test e
+  scan de vulnerabilidades (Trivy, informativo).
+- **Release** (`release.yml`): em tags `vX.Y.Z` (estável) ou `bX.Y.Z` (beta) — build
+  **multi-arch (amd64+arm64)**, gate de Trivy (**falha em CVE CRITICAL**), push no GHCR e
+  GitHub Release (beta = *pre-release*).
+
+```bash
+git tag v1.0.0 && git push origin v1.0.0   # release estável
+git tag b1.1.0 && git push origin b1.1.0   # release beta
+```
+
+Detalhes completos em [docs/CICD.md](docs/CICD.md).
 
 ---
 
