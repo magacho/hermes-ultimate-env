@@ -10,7 +10,7 @@ ARG TARGETARCH
 #  Para atualizar uma ferramenta, altere aqui e atualize VERSIONS.md + CHANGELOG.
 # ============================================================================
 # Linguagens / runtimes (versões já declaradas no projeto original)
-ARG GO_VERSION=1.22.3
+ARG GO_VERSION=1.26.3
 ARG NODE_VERSION=24.16.0
 ARG NVM_VERSION=0.39.7
 ARG MAVEN_VERSION=3.9.6

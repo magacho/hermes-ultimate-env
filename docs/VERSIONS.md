@@ -27,7 +27,7 @@ _Última revisão das versões: 2026-05-30._
 
 | Componente | Versão | Método de instalação |
 |------------|--------|----------------------|
-| Go | `1.22.3` | tarball oficial `go.dev`, por arquitetura |
+| Go | `1.26.3` | tarball oficial `go.dev`, por arquitetura |
 | Node.js | `24.16.0` (LTS Krypton) | `nvm install` (versão fixada) |
 | nvm | `0.39.7` | script oficial (tag fixada) |
 | Java (Amazon Corretto) | `21` (LTS) | repo `apt.corretto.aws` |
@@ -96,5 +96,6 @@ do home e instalação do Playwright **foram aplicadas e validadas por build**. 
    `build-essential` após os builds Python, ou build multi-stage. A decidir.
 3. **`hermes-agent`** confirmado como a última estável (0.15.2, Nous Research). Só validar que
    é o agente pretendido — há outros pacotes de nome parecido no PyPI.
-4. **Atualizações disponíveis (opcionais):** Go 1.26.x, Maven 3.9.16, nvm 0.40.x estão
-   disponíveis caso queira sair das versões originalmente declaradas.
+4. **Atualizações disponíveis (opcionais):** Maven 3.9.16 e nvm 0.40.x estão disponíveis
+   caso queira sair das versões originalmente declaradas. (Go já foi atualizado para 1.26.3
+   por exigência do gate de segurança — CVE-2024-24790 e CVE-2025-68121.)

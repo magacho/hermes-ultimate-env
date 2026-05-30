@@ -50,6 +50,9 @@ e o projeto adota [SemVer](https://semver.org/lang/pt-BR/).
 - `welcome.sh` corrigido para os comandos reais: `claude`, `gemini`, `codex`, `acli`, `gog`.
 
 ### Corrigido
+- **Go 1.22.3 → 1.26.3:** o gate de Trivy barrou a release por 2 CVEs CRITICAL no stdlib do Go
+  (CVE-2024-24790, CVE-2025-68121). Atualizado para a estável atual, que corrige ambos.
+- **Ref do `trivy-action`:** `v0.36.0` (faltava o prefixo `v` — derrubava o job no setup).
 - **Arquitetura:** downloads selecionam amd64/arm64 via `TARGETARCH` (antes baixava binários
   ARM64 fixos, quebrando em x86_64).
 - **Python:** uso do `python3` 3.12 do Noble (antes pedia `python3.11`, inexistente no repo);
