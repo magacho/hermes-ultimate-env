@@ -17,14 +17,18 @@ Todo o ciclo de vida do projeto vive no **GitHub**: código no repositório, ima
 ### `release.yml` — Build, scan e publicação
 **Dispara em:** tags `vX.Y.Z` (estável) e `bX.Y.Z` (beta), e manualmente.
 
-Fluxo:
-1. Resolve o canal pela tag (`v` = estável, `b` = beta) e calcula as tags de imagem.
-2. **Build amd64 local** como alvo do scan.
-3. **Trivy (SARIF)** → relatório na aba *Security* (não bloqueia).
-4. **Trivy (gate)** → **falha a release se houver CVE `CRITICAL`** (corrigível).
-5. **Build multi-arch (amd64+arm64)** e **push no GHCR/Docker Hub** — só após passar no gate.
-6. **Assinatura com cosign (keyless via OIDC)** — assina a imagem por digest em cada registry.
-7. **GitHub Release** (beta marcado como *pre-release*, com notas geradas).
+Fluxo (jobs **nativos paralelos**, sem QEMU):
+1. **`meta`** — resolve canal pela tag (`v`=estável, `b`=beta) e os nomes/sufixos de imagem.
+2. **`build-amd64`** (runner x86 nativo) — **Trivy (SARIF + gate `CRITICAL`)** e, se passar,
+   **push por digest** (GHCR + Docker Hub).
+3. **`build-arm64`** (runner **ARM nativo `ubuntu-24.04-arm`**) — push por digest, **em paralelo**
+   com o amd64.
+4. **`merge`** — monta o **manifesto multi-arch** em cada registry (`imagetools create`),
+   **assina com cosign (keyless via OIDC)** por digest do índice, e cria o **GitHub Release**
+   (beta = *pre-release*).
+
+> Builds por arquitetura em **runners nativos paralelos** eliminam a emulação QEMU do arm64 —
+> o release saiu da faixa de ~45 min para ~10–18 min. Ver [BUILD_OPTIMIZATION.md](BUILD_OPTIMIZATION.md).
 
 > Os builds recebem `--build-arg IMAGE_VERSION=<versão>`, que alimenta o servidor de
 > health/info embutido (`GET /` e `/release.json`) — assim a página da release mostra a

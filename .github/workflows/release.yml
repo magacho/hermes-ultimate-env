@@ -1,10 +1,15 @@
 name: Release
 
 # Dispara em tags de versão:
-#   vX.Y.Z  -> release estável  (GHCR: X.Y.Z, X.Y, latest)
-#   bX.Y.Z  -> release beta      (GHCR: X.Y.Z-beta, beta)
-# Fluxo: build amd64 -> Trivy (gate em CRITICAL) -> build multi-arch + push GHCR
-#        -> GitHub Release (beta = pre-release).
+#   vX.Y.Z  -> release estável  (tags: X.Y.Z, X.Y, latest)
+#   bX.Y.Z  -> release beta      (tags: X.Y.Z-beta, beta)
+#
+# Arquitetura do pipeline (sem QEMU):
+#   meta          -> resolve tag/canal/imagens
+#   build-amd64   -> runner x86 nativo; Trivy (gate CRITICAL) + push por digest
+#   build-arm64   -> runner ARM nativo; push por digest  (em PARALELO com amd64)
+#   merge         -> monta o manifesto multi-arch (GHCR + Docker Hub), assina
+#                    com cosign keyless e cria o GitHub Release
 on:
   push:
     tags:
@@ -21,23 +26,23 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  release:
+  # ---------------------------------------------------------------------------
+  # Resolve tag, canal e nomes de imagem (sem tag) para os demais jobs
+  # ---------------------------------------------------------------------------
+  meta:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write          # criar GitHub Release
-      packages: write          # push no GHCR
-      security-events: write   # upload do SARIF
-      id-token: write          # OIDC para assinatura keyless (cosign)
+    outputs:
+      tag: ${{ steps.m.outputs.tag }}
+      channel: ${{ steps.m.outputs.channel }}
+      version: ${{ steps.m.outputs.version }}
+      prerelease: ${{ steps.m.outputs.prerelease }}
+      images: ${{ steps.m.outputs.images }}             # nomes sem tag, separados por vírgula
+      tag_suffixes: ${{ steps.m.outputs.tag_suffixes }} # sufixos, separados por vírgula
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-
-      - name: Resolver tag, canal e tags de imagem
-        id: meta
+      - name: Resolver tag e canal
+        id: m
         env:
-          DOCKERHUB_REPO: ${{ vars.DOCKERHUB_REPO }}   # ex.: usuario/hermes-ultimate-env
+          DOCKERHUB_REPO: ${{ vars.DOCKERHUB_REPO }}
         run: |
           set -euo pipefail
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
@@ -46,40 +51,47 @@ jobs:
             b[0-9]*) CHANNEL=beta ;;
             *) echo "::error::Tag '$TAG' não segue vX.Y.Z nem bX.Y.Z"; exit 1 ;;
           esac
-          VERSION="${TAG#?}"                      # remove o primeiro caractere (v|b)
+          VERSION="${TAG#?}"
           GHCR_IMG="$(echo "${REGISTRY}/${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')"
 
-          # Gera o conjunto de tags (sufixos) para uma dada base de imagem
-          suffixes() {
-            local base="$1"
-            if [ "$CHANNEL" = stable ]; then
-              echo "${base}:${VERSION},${base}:${VERSION%.*},${base}:latest"
-            else
-              echo "${base}:${VERSION}-beta,${base}:beta"
-            fi
-          }
-
-          TAGS="$(suffixes "$GHCR_IMG")"
-          # Adiciona as tags do Docker Hub se a variável estiver configurada
-          if [ -n "${DOCKERHUB_REPO:-}" ]; then
-            TAGS="${TAGS},$(suffixes "docker.io/${DOCKERHUB_REPO}")"
+          if [ "$CHANNEL" = stable ]; then
+            SUFFIXES="${VERSION},${VERSION%.*},latest"
+            PRERELEASE=false
+          else
+            SUFFIXES="${VERSION}-beta,beta"
+            PRERELEASE=true
           fi
-          [ "$CHANNEL" = stable ] && PRERELEASE=false || PRERELEASE=true
+
+          IMAGES="$GHCR_IMG"
+          if [ -n "${DOCKERHUB_REPO:-}" ]; then
+            IMAGES="${IMAGES},docker.io/${DOCKERHUB_REPO}"
+          fi
 
           {
             echo "tag=$TAG"
             echo "channel=$CHANNEL"
             echo "version=$VERSION"
-            echo "tags=$TAGS"
             echo "prerelease=$PRERELEASE"
-            # Bases de imagem (sem tag) para assinar por digest com cosign
-            echo "ghcr_image=$GHCR_IMG"
-            echo "dockerhub_image=${DOCKERHUB_REPO:+docker.io/$DOCKERHUB_REPO}"
+            echo "images=$IMAGES"
+            echo "tag_suffixes=$SUFFIXES"
           } >> "$GITHUB_OUTPUT"
           echo "Canal=$CHANNEL Versão=$VERSION"
-          echo "Tags:"; echo "$TAGS" | tr ',' '\n' | sed 's/^/  - /'
+          echo "Imagens: $IMAGES"
+          echo "Sufixos de tag: $SUFFIXES"
 
-      - uses: docker/setup-qemu-action@v3
+  # ---------------------------------------------------------------------------
+  # amd64 nativo: scan + gate CRITICAL, depois push por digest
+  # ---------------------------------------------------------------------------
+  build-amd64:
+    needs: meta
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      security-events: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - name: Login no GHCR
         uses: docker/login-action@v3
@@ -94,24 +106,22 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 1) Build amd64 local — alvo do scan (gate ANTES de publicar)
-      - name: Build (amd64) para scan
+      - name: Build amd64 (load) para scan
         uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
           load: true
-          tags: scan-target:${{ steps.meta.outputs.version }}
+          tags: scan-target:${{ needs.meta.outputs.version }}
           build-args: |
-            IMAGE_VERSION=${{ steps.meta.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            IMAGE_VERSION=${{ needs.meta.outputs.version }}
+          cache-from: type=gha,scope=amd64
+          cache-to: type=gha,mode=max,scope=amd64
 
-      # 2) Trivy — relatório SARIF (não bloqueia) para a aba Security
       - name: Trivy (SARIF)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: scan-target:${{ steps.meta.outputs.version }}
+          image-ref: scan-target:${{ needs.meta.outputs.version }}
           format: sarif
           output: trivy.sarif
           severity: CRITICAL,HIGH
@@ -121,59 +131,129 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy.sarif
-
-      # 3) Trivy — gate: falha a release se houver CVE CRITICAL (corrigível)
       - name: Trivy (gate CRITICAL)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          image-ref: scan-target:${{ steps.meta.outputs.version }}
+          image-ref: scan-target:${{ needs.meta.outputs.version }}
           format: table
           severity: CRITICAL
           exit-code: '1'
           ignore-unfixed: true
 
-      # 4) Build multi-arch + push no GHCR/Docker Hub (só após passar no gate)
-      - name: Build & push (linux/amd64, linux/arm64)
-        id: build_push
+      - name: Push amd64 por digest
+        id: push
         uses: docker/build-push-action@v6
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          platforms: linux/amd64
           build-args: |
-            IMAGE_VERSION=${{ steps.meta.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+            IMAGE_VERSION=${{ needs.meta.outputs.version }}
+          outputs: |
+            type=image,"name=${{ needs.meta.outputs.images }}",push-by-digest=true,name-canonical=true,push=true
           provenance: false
+          cache-from: type=gha,scope=amd64
+          cache-to: type=gha,mode=max,scope=amd64
 
-      # 5) Assinatura keyless (cosign via OIDC) — assina por digest em cada registry
+  # ---------------------------------------------------------------------------
+  # arm64 NATIVO (sem QEMU): push por digest — roda em paralelo com amd64
+  # ---------------------------------------------------------------------------
+  build-arm64:
+    needs: meta
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      packages: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login no Docker Hub
+        if: vars.DOCKERHUB_REPO != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push arm64 por digest
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          build-args: |
+            IMAGE_VERSION=${{ needs.meta.outputs.version }}
+          outputs: |
+            type=image,"name=${{ needs.meta.outputs.images }}",push-by-digest=true,name-canonical=true,push=true
+          provenance: false
+          cache-from: type=gha,scope=arm64
+          cache-to: type=gha,mode=max,scope=arm64
+
+  # ---------------------------------------------------------------------------
+  # Monta o manifesto multi-arch em cada registry, assina (cosign) e faz release
+  # ---------------------------------------------------------------------------
+  merge:
+    needs: [meta, build-amd64, build-arm64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write          # criar GitHub Release
+      packages: write          # imagetools (manifesto)
+      id-token: write          # OIDC para cosign keyless
+    steps:
+      - uses: docker/setup-buildx-action@v3
       - name: Instalar cosign
         uses: sigstore/cosign-installer@v3.8.1
-      - name: Assinar imagens publicadas (cosign keyless)
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Login no Docker Hub
+        if: vars.DOCKERHUB_REPO != ''
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Criar manifesto multi-arch e assinar (cada registry)
         env:
-          DIGEST: ${{ steps.build_push.outputs.digest }}
-          GHCR_IMAGE: ${{ steps.meta.outputs.ghcr_image }}
-          DOCKERHUB_IMAGE: ${{ steps.meta.outputs.dockerhub_image }}
+          IMAGES: ${{ needs.meta.outputs.images }}
+          SUFFIXES: ${{ needs.meta.outputs.tag_suffixes }}
+          AMD64_DIGEST: ${{ needs.build-amd64.outputs.digest }}
+          ARM64_DIGEST: ${{ needs.build-arm64.outputs.digest }}
         run: |
           set -euo pipefail
-          cosign sign --yes "${GHCR_IMAGE}@${DIGEST}"
-          if [ -n "${DOCKERHUB_IMAGE}" ]; then
-            cosign sign --yes "${DOCKERHUB_IMAGE}@${DIGEST}"
-          fi
+          for img in ${IMAGES//,/ }; do
+            tagargs=()
+            for s in ${SUFFIXES//,/ }; do tagargs+=(-t "${img}:${s}"); done
+            echo "::group::Manifesto $img"
+            docker buildx imagetools create "${tagargs[@]}" \
+              "${img}@${AMD64_DIGEST}" "${img}@${ARM64_DIGEST}"
+            primary="${SUFFIXES%%,*}"
+            index_digest="$(docker buildx imagetools inspect "${img}:${primary}" --format '{{.Manifest.Digest}}')"
+            echo "Assinando ${img}@${index_digest}"
+            cosign sign --yes "${img}@${index_digest}"
+            echo "::endgroup::"
+          done
 
-      # 6) GitHub Release (beta = pre-release)
       - name: Criar GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.meta.outputs.tag }}
-          name: ${{ steps.meta.outputs.tag }}
-          prerelease: ${{ steps.meta.outputs.prerelease }}
+          tag_name: ${{ needs.meta.outputs.tag }}
+          name: ${{ needs.meta.outputs.tag }}
+          prerelease: ${{ needs.meta.outputs.prerelease }}
           generate_release_notes: true
           body: |
-            Canal: **${{ steps.meta.outputs.channel }}**
+            Canal: **${{ needs.meta.outputs.channel }}**
 
-            Imagem publicada no GHCR:
+            Imagens (multi-arch amd64+arm64, assinadas com cosign), em cada registry:
             ```
-            ${{ steps.meta.outputs.tags }}
+            ${{ needs.meta.outputs.images }}
             ```
+            Tags: `${{ needs.meta.outputs.tag_suffixes }}`

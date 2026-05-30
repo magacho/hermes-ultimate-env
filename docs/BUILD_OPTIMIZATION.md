@@ -1,7 +1,10 @@
 # Avaliação de performance de build
 
 > Contexto da issue: **"Avaliar o processo de build e estudar otimizações (demora > 30 min)"**.
-> Escopo desta entrega: **diagnóstico + proposta**, sem implementação.
+
+> **Status (atualizado):** decisão tomada e **implementada** — split em jobs nativos paralelos
+> (amd64 + arm64) com merge de manifesto. A "telemetria por etapa" foi **descartada** (o GitHub
+> Actions já expõe a duração por passo nativamente). Ver "Decisão e implementação" no fim.
 
 ## Resumo executivo
 
@@ -25,10 +28,11 @@ No run `26683001893`, os passos mais caros foram:
 
 Os principais fatores de lentidão são:
 
-- **Build duplicado no release**:
-  - primeiro build `amd64` para scan/gate;
-  - segundo build multi-arch (`amd64+arm64`) para push.
-- **Build multi-arch com QEMU** para `arm64`, que costuma aumentar bastante o tempo.
+- **Build multi-arch com QEMU** para `arm64` — **fator dominante** (a maior parte dos ~34min
+  do passo de push é a emulação do arm64).
+- **Build amd64 para scan + build multi-arch para push** — fator **secundário**: o build
+  multi-arch reaproveita as camadas amd64 via cache `type=gha`, então não é uma duplicação
+  cheia; o custo real está no arm64 emulado.
 - **Dockerfile monolítico e pesado** (muitas instalações de runtimes/CLIs), aumentando custo de cold build.
 - **Dependência de downloads externos** (Go, Maven, gcloud, AWS CLI, npm, pipx, Playwright/browser), com variabilidade de rede.
 
@@ -36,11 +40,12 @@ Os principais fatores de lentidão são:
 
 ### Fase 1 — Ganhos rápidos (baixo risco)
 
-1. **Adicionar medição de tempo por etapa no workflow** (telemetria simples em resumo de job).
-2. **Ajustar cache Buildx por escopo/arquitetura** (`scope` dedicado para release, branch e plataforma).
-3. **Evitar rebuild desnecessário de amd64 no release** (reaproveitar artefato/imagem intermediária quando possível).
-
-> Meta esperada da fase 1: reduzir variabilidade e obter baseline confiável para comparar otimizações.
+1. ~~**Adicionar medição de tempo por etapa no workflow** (telemetria).~~ **Descartado** — o
+   GitHub Actions já mostra a duração de cada passo na UI e via `gh run view`; instrumentar
+   isso no workflow só duplicaria dado existente.
+2. **Ajustar cache Buildx por escopo/arquitetura** (`scope` dedicado por plataforma). ✅ Feito
+   (scopes `amd64`/`arm64` separados).
+3. **Evitar rebuild desnecessário de amd64** — já mitigado pelo cache `type=gha`.
 
 ### Fase 2 — Maior impacto em tempo total
 
@@ -73,3 +78,27 @@ Os principais fatores de lentidão são:
 - P95 do workflow de release **< 30 min**
 - Build multi-arch com variação controlada entre execuções
 - Sem regressão no gate de segurança (Trivy CRITICAL)
+
+---
+
+## Decisão e implementação
+
+**Escolha:** separar o build por arquitetura em **jobs nativos paralelos** (eliminando o QEMU),
+com um job de merge. Implementado no `release.yml`:
+
+- `meta` → resolve tag/canal/imagens.
+- `build-amd64` (runner `ubuntu-latest`, x86 nativo) → **Trivy SARIF + gate CRITICAL** e, se
+  passar, **push por digest** (GHCR + Docker Hub).
+- `build-arm64` (runner **`ubuntu-24.04-arm` nativo**, sem emulação) → push por digest, **em
+  paralelo** com o amd64.
+- `merge` → `docker buildx imagetools create` monta o manifesto multi-arch em cada registry,
+  **assina com cosign keyless** (por digest do índice) e cria o **GitHub Release**.
+
+**O que NÃO foi feito (e por quê):**
+- Telemetria de tempo por etapa — redundante (dado já existe no Actions).
+
+**Pendente / próximo (issue #1):** multi-stage e split de imagem base → foco em **tamanho**
+(não em tempo; o tempo já é resolvido pelo runner nativo).
+
+> Validação: comparar a duração do primeiro release nesse modelo (esperado ~10–18 min) com a
+> baseline de ~45 min.

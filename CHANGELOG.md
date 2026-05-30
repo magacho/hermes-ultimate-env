@@ -41,6 +41,13 @@ e o projeto adota [SemVer](https://semver.org/lang/pt-BR/).
 - `env_file` marcado como `required: false` (não falha se o `.env` ainda não existe).
 - Opção de hardening `no-new-privileges` documentada (comentada) no compose.
 
+### CI/CD (performance de build)
+- **Release reescrita em jobs nativos paralelos** (sem QEMU): `meta` → `build-amd64`
+  (x86, com Trivy gate) ‖ `build-arm64` (runner `ubuntu-24.04-arm` nativo) → `merge`
+  (manifesto multi-arch via `imagetools` + cosign + GitHub Release). Push **por digest** por
+  arquitetura. Cache buildx com `scope` por plataforma. Meta: release ~45min → ~10–18min.
+  Telemetria por etapa **descartada** (dado já existe no Actions). Ver `docs/BUILD_OPTIMIZATION.md`.
+
 ### Segurança (assinatura de imagem)
 - **Assinatura keyless com cosign** (OIDC do GitHub Actions, `id-token: write`) em toda release,
   por digest, em **cada registry (GHCR e Docker Hub)** — sem chave armazenada. Incorpora a
