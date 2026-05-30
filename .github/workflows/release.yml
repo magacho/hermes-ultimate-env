@@ -126,8 +126,6 @@ jobs:
         uses: sigstore/cosign-installer@v3.8.1
 
       - name: Assinar imagem publicada (cosign keyless)
-        env:
-          COSIGN_EXPERIMENTAL: "false"
         run: |
           set -euo pipefail
           cosign sign --yes "${{ steps.meta.outputs.image }}@${{ steps.build_push.outputs.digest }}"

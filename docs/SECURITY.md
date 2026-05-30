@@ -104,6 +104,7 @@ environment:
 IMAGE=ghcr.io/<owner>/<repo>:latest
 OWNER=<owner>
 REPO=<repo>
+# Substitua <owner>/<repo> pelos valores reais do seu projeto.
 
 cosign verify "$IMAGE" \
   --certificate-identity-regexp "^https://github.com/${OWNER}/${REPO}/.github/workflows/release.yml@refs/tags/.+$" \
