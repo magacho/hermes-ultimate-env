@@ -54,6 +54,7 @@ curl localhost:8080/health
 | [docs/CREDENTIALS.md](docs/CREDENTIALS.md) | Como fornecer chaves e fazer login nas CLIs |
 | [docs/SECURITY.md](docs/SECURITY.md)       | Modelo de segurança e gestão de chaves |
 | [docs/CICD.md](docs/CICD.md)               | Pipeline de CI/CD, releases e scan de vulnerabilidades |
+| [docs/BUILD_OPTIMIZATION.md](docs/BUILD_OPTIMIZATION.md) | Diagnóstico e plano de otimização de tempo de build |
 | [CHANGELOG.md](CHANGELOG.md)               | Histórico de versões |
 
 ---
