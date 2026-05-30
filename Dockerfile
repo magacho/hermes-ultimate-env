@@ -20,6 +20,10 @@ ARG AWSCLI_VERSION=2.34.57
 ARG GH_VERSION=2.93.0
 ARG GOGCLI_VERSION=0.19.0
 ARG OCI_CLI_VERSION=3.84.0
+# Ferramentas Google (conta pessoal): Gmail (himalaya), Drive (gdrive), Calendar (gcalcli)
+ARG HIMALAYA_VERSION=1.2.0
+ARG GDRIVE_VERSION=3.9.1
+ARG GCALCLI_VERSION=4.5.1
 # CLIs de IA — instaladas via npm (método oficial de cada uma)
 ARG CLAUDE_CODE_VERSION=2.1.158
 ARG GEMINI_CLI_VERSION=0.44.1
@@ -121,6 +125,21 @@ RUN set -eux; \
     curl -fsSL -o /usr/local/bin/acli "https://acli.atlassian.com/linux/latest/acli_linux_${DEBARCH}/acli"; \
     chmod +x /usr/local/bin/acli; \
     \
+    # --- himalaya (CLI de e-mail / Gmail) — amd64 + arm64 ---
+    mkdir -p /tmp/hima; \
+    curl -fsSL -o /tmp/hima.tgz "https://github.com/pimalaya/himalaya/releases/download/v${HIMALAYA_VERSION}/himalaya.${AWSARCH}-linux.tgz"; \
+    tar -C /tmp/hima -xzf /tmp/hima.tgz; \
+    install -m 0755 /tmp/hima/himalaya /usr/local/bin/himalaya; \
+    \
+    # --- gdrive (Google Drive) — só amd64 (sem binário arm64 oficial no upstream) ---
+    if [ "${TARGETARCH}" = "amd64" ]; then \
+      curl -fsSL -o /tmp/gdrive.tgz "https://github.com/glotlabs/gdrive/releases/download/${GDRIVE_VERSION}/gdrive_linux-x64.tar.gz"; \
+      mkdir -p /tmp/gdrive && tar -C /tmp/gdrive -xzf /tmp/gdrive.tgz; \
+      install -m 0755 /tmp/gdrive/gdrive /usr/local/bin/gdrive; \
+    else \
+      echo "[build] gdrive sem binário arm64 — pulado nesta arquitetura"; \
+    fi; \
+    \
     # --- Limpeza ---
     rm -rf /tmp/*
 
@@ -177,7 +196,8 @@ ENV PIP_NO_CACHE_DIR=1
 RUN pipx install "hermes-agent[all,anthropic,messaging,matrix,wecom,dingtalk,feishu,exa,firecrawl,parallel-web,honcho]==${HERMES_AGENT_VERSION}" && \
     pipx install "playwright==${PLAYWRIGHT_VERSION}" && \
     pipx inject playwright "playwright-stealth==${PLAYWRIGHT_STEALTH_VERSION}" && \
-    pipx install "oci-cli==${OCI_CLI_VERSION}"
+    pipx install "oci-cli==${OCI_CLI_VERSION}" && \
+    pipx install "gcalcli==${GCALCLI_VERSION}"
 
 # Navegadores do Playwright — apenas Chromium (reduz ~1 GB vs. instalar todos)
 RUN playwright install --with-deps chromium

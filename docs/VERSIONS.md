@@ -51,6 +51,14 @@ _Última revisão das versões: 2026-05-30._
 | Oracle Cloud CLI (`oci`) | `3.84.0` | **pipx** (venv isolado) |
 | Atlassian CLI (`acli`) | `latest` ⚠️ (resolveu p/ `1.3.18-stable`) | binário oficial — **ver exceção abaixo** |
 
+## Ferramentas Google (conta pessoal)
+
+| Componente | Versão | Método de instalação |
+|------------|--------|----------------------|
+| Himalaya (Gmail) | `1.2.0` | binário GitHub release, por arquitetura (amd64/arm64) |
+| gdrive (Drive) | `3.9.1` | binário GitHub release — **só amd64** (sem build arm64 upstream) |
+| gcalcli (Calendar) | `4.5.1` | `pipx` (venv isolado) |
+
 ## Aplicações Python (via pipx)
 
 | Componente | Versão | Observação |

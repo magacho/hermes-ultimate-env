@@ -47,6 +47,14 @@ a coluna **Como é instalado** é relevante para reprodutibilidade e segurança 
 | GitHub CLI | `gh` | `.deb` versionado, por arquitetura |
 | Atlassian CLI | `acli` | binário oficial canal `latest` ⚠️ (ver VERSIONS.md) |
 
+## Google (conta pessoal)
+
+| Ferramenta | Comando | Como é instalado |
+|------------|---------|------------------|
+| Gmail (Himalaya) | `himalaya` | binário oficial (GitHub release), por arquitetura |
+| Calendar (gcalcli) | `gcalcli` | `pipx install gcalcli` |
+| Drive (gdrive) | `gdrive` | binário oficial (GitHub release) — **só amd64** |
+
 ## Utilitários
 
 | Ferramenta | Comando | Como é instalado |

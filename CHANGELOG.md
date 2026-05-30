@@ -41,6 +41,11 @@ e o projeto adota [SemVer](https://semver.org/lang/pt-BR/).
 - `env_file` marcado como `required: false` (não falha se o `.env` ainda não existe).
 - Opção de hardening `no-new-privileges` documentada (comentada) no compose.
 
+### Ferramentas Google (conta pessoal)
+- Adicionadas CLIs: **himalaya** 1.2.0 (Gmail), **gcalcli** 4.5.1 (Calendar, via pipx) e
+  **gdrive** 3.9.1 (Drive — **só amd64**; upstream não publica binário arm64).
+- Refletidas no `welcome.sh`, no servidor de info (`/` e `/release.json`) e nas docs.
+
 ### Integrações do hermes-agent (expandidas)
 - Adicionados extras: **mensageria** (`messaging` = Telegram/Discord/Slack, + `matrix`, `wecom`,
   `dingtalk`, `feishu`), **busca/scraping** (`exa`, `firecrawl`, `parallel-web`) e **`honcho`**.

@@ -70,6 +70,7 @@ def render_html(d):
 {section("Runtimes", d.get("runtimes", {}))}
 {section("CLIs de IA", d.get("ai_clis", {}))}
 {section("CLIs de Cloud / DevOps", d.get("cloud_clis", {}))}
+{section("Ferramentas Google (Gmail/Calendar/Drive)", d.get("google_tools", {}))}
 {pre("Bibliotecas Python (venv hermes-agent)", libs.get("pip_hermes"))}
 {pre("Pacotes npm globais", libs.get("npm_global"))}
 <footer>/health · /release.json &middot; Hermes Ultimate Environment</footer>

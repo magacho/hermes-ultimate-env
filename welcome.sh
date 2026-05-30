@@ -49,6 +49,12 @@ echo -n "GitHub:    "; gh --version 2>&1 | head -n 1
 echo -n "Atlassian: "; acli --version 2>&1 | head -n 1
 echo -n "GOG:       "; gog --version 2>&1 | head -n 1
 
+# --- Google (conta pessoal) ---
+print_header "Google Tools"
+echo -n "Himalaya:  "; himalaya --version 2>&1 | head -n 1
+echo -n "gcalcli:   "; gcalcli --version 2>&1 | head -n 1
+echo -n "gdrive:    "; gdrive version 2>&1 | head -n 1 || echo "(amd64 only)"
+
 # --- Utilitários ---
 print_header "Utilities"
 echo -n "HTTPie:    "; http --version 2>&1

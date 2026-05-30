@@ -47,6 +47,11 @@ data = {
         "acli": first("acli --version"),
         "gog": first("gog --version"),
     },
+    "google_tools": {
+        "himalaya": first("himalaya --version"),
+        "gcalcli": first("gcalcli --version"),
+        "gdrive": first("gdrive version"),
+    },
     "libraries": {
         "pip_hermes": run("pipx runpip hermes-agent list --format=freeze 2>/dev/null"),
         "npm_global": run("npm ls -g --depth=0 2>/dev/null"),
