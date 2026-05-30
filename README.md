@@ -48,6 +48,7 @@ curl localhost:8080/health
 | Documento | Conteúdo |
 |-----------|----------|
 | [docs/INSTALL.md](docs/INSTALL.md)         | Build local, uso, e pull da imagem do GHCR |
+| [docs/SETUP.md](docs/SETUP.md)             | Onboarding do zero: chaves de API, login das CLIs, SSH e verificação |
 | [docs/TOOLS.md](docs/TOOLS.md)             | Inventário completo de ferramentas |
 | [docs/VERSIONS.md](docs/VERSIONS.md)       | Versões instaladas / declaradas |
 | [docs/CREDENTIALS.md](docs/CREDENTIALS.md) | Como fornecer chaves e fazer login nas CLIs |
