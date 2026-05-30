@@ -22,6 +22,13 @@ e o projeto adota [SemVer](https://semver.org/lang/pt-BR/).
     `DOCKERHUB_REPO` (+ secrets `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN`). Permite
     `docker pull` em qualquer lugar.
 - `scripts/smoke-test.sh` reutilizável (CI + local).
+- **Servidor de health/info embutido** (`app/info_server.py`, stdlib, porta 8080):
+  - `GET /health` (também é o `HEALTHCHECK` do Docker e o do compose),
+  - `GET /` página HTML com release + versões + bibliotecas (`pip`/`npm`),
+  - `GET /release.json` com o inventário em JSON.
+  - Dados capturados no build por `scripts/collect-info.sh` (snapshot); versão da imagem
+    via `--build-arg IMAGE_VERSION` (o `release.yml` passa a tag).
+  - Sobe via `entrypoint.sh` em background; container segue acessível por `exec`.
 - Templates de issue do GitHub (`.github/ISSUE_TEMPLATE/`: feature/bug) e `docs/CICD.md`.
 - Bloco de `ARG` no topo do `Dockerfile` como fonte única de verdade das versões.
 - Verificação de checksum (sha256) no download do gogcli.

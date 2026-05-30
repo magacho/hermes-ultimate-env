@@ -52,6 +52,7 @@ em [CREDENTIALS.md](CREDENTIALS.md).
 | 3 | **Instaladores via `curl \| bash` (nvm, acli)** | Reduzido: versões fixadas; gogcli tem verificação de **checksum sha256**. nvm usa tag fixada; `acli` vem do canal oficial `latest` (sem URL versionada — ver VERSIONS.md). |
 | 4 | **Chave SSH privada montada no container** | Funciona, mas preferir **`ssh-agent` forwarding** (ver §5) para a chave nunca entrar no container. |
 | 5 | **Vazamento via contexto de build** | Mitigado pelo `.dockerignore` (exclui `user_data/`, `.env`, `.git`). |
+| 6 | **Servidor de info expõe o inventário de versões na porta 8080 (`0.0.0.0`)** | Escolhido para acesso em rede. É *info disclosure* leve (versões instaladas → recon). Não serve segredos. Para restringir: `HERMES_INFO_BIND=127.0.0.1` ou mapear `127.0.0.1:8080:8080` no compose. |
 
 ---
 

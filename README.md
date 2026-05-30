@@ -26,6 +26,21 @@ docker compose exec hermes bash
 Seu workspace fica em `/home/hermes/workspaces/`. Toda configuração e sessão é persistente
 (ver [docs/CREDENTIALS.md](docs/CREDENTIALS.md)).
 
+### Health & info
+
+O container sobe um servidor leve (porta **8080**) que se auto-descreve:
+
+| Endpoint | Conteúdo |
+|----------|----------|
+| `GET /health` | status ao vivo (JSON) — também é o `HEALTHCHECK` do Docker |
+| `GET /` | página HTML com a release e as versões/bibliotecas instaladas |
+| `GET /release.json` | o mesmo inventário em JSON |
+
+```bash
+curl localhost:8080/health
+# abra http://localhost:8080/ no navegador para ver versões e bibliotecas
+```
+
 ---
 
 ## Documentação

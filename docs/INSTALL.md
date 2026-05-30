@@ -29,9 +29,16 @@ docker compose up --build -d
 # 3. Acessa o shell do ambiente
 docker compose exec hermes bash
 
+# Health & info (servidor embutido na porta 8080)
+curl localhost:8080/health        # status ao vivo
+# http://localhost:8080/          # página com versões e bibliotecas
+
 # Parar / remover (os volumes em user_data/ e agent_data/ permanecem no host)
 docker compose down
 ```
+
+> O `docker compose ps` mostra o status do healthcheck (`healthy`) graças ao `HEALTHCHECK`
+> da imagem, que bate em `/health`.
 
 A primeira credencial interativa de cada CLI de nuvem deve ser feita uma vez dentro
 do container — veja [CREDENTIALS.md](CREDENTIALS.md).

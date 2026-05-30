@@ -22,6 +22,9 @@ services:
       - ./user_data/.config:/home/hermes/.config
       - ./user_data/.aws:/home/hermes/.aws
       - ./user_data/.oci:/home/hermes/.oci
+    # Servidor de health/info embutido (0.0.0.0:8080 no host)
+    ports:
+      - "8080:8080"
     # Hardening opcional (ver docs/SECURITY.md):
     # `no-new-privileges` impede escalonamento de privilégios, MAS desativa o
     # `sudo` do usuário hermes. Habilite apenas se não precisar de sudo no runtime.

@@ -25,6 +25,10 @@ Fluxo:
 5. **Build multi-arch (amd64+arm64)** e **push no GHCR** — só após passar no gate.
 6. **GitHub Release** (beta marcado como *pre-release*, com notas geradas).
 
+> Os builds recebem `--build-arg IMAGE_VERSION=<versão>`, que alimenta o servidor de
+> health/info embutido (`GET /` e `/release.json`) — assim a página da release mostra a
+> versão correta e o inventário de versões/bibliotecas daquela imagem.
+
 ## Registries de destino
 
 A imagem é publicada em **dois** registries (use o que preferir — a imagem é a mesma):

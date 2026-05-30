@@ -98,6 +98,8 @@ jobs:
           platforms: linux/amd64
           load: true
           tags: scan-target:${{ steps.meta.outputs.version }}
+          build-args: |
+            IMAGE_VERSION=${{ steps.meta.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -134,6 +136,8 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
+          build-args: |
+            IMAGE_VERSION=${{ steps.meta.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false

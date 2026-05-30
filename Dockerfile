@@ -30,6 +30,8 @@ ARG PLAYWRIGHT_VERSION=1.60.0
 ARG PLAYWRIGHT_STEALTH_VERSION=2.0.3
 # Utilitários npm
 ARG PM2_VERSION=7.0.1
+# Versão da imagem/release exibida no servidor de info (o CI passa via --build-arg)
+ARG IMAGE_VERSION=dev
 
 # Metadados da imagem
 LABEL maintainer="hermes-agent"
@@ -44,6 +46,9 @@ ENV NVM_DIR=/home/hermes/.nvm
 ENV GOROOT=/usr/local/go
 ENV GOPATH=/home/hermes/go
 ENV M2_HOME=/opt/maven
+# Servidor de health/info embutido
+ENV HERMES_INFO_PORT=8080
+ENV HERMES_INFO_BIND=0.0.0.0
 # O caminho do Node é derivado da versão fixada (NODE_VERSION), garantindo que
 # `node`/`npm` estejam no PATH inclusive em shells não-interativos.
 ENV PATH="${GOROOT}/bin:${GOPATH}/bin:${M2_HOME}/bin:/opt/google-cloud-sdk/bin:${JAVA_HOME}/bin:${NVM_DIR}/versions/node/v${NODE_VERSION}/bin:${HOME}/.local/bin:${HOME}/bin:/usr/local/bin:${PATH}"
@@ -175,15 +180,32 @@ RUN pipx install "hermes-agent[all,anthropic]==${HERMES_AGENT_VERSION}" && \
 RUN playwright install --with-deps chromium
 
 # ----------------------------------------------------------------------------
-# 7) Configuração final
+# 7) Servidor de health/info + configuração final
 # ----------------------------------------------------------------------------
 RUN mkdir -p ${HOME}/.hermes/
 
+# Scripts e app do servidor de info (COPY roda como root)
 COPY welcome.sh /etc/welcome.sh
+COPY app/ /opt/hermes/app/
+COPY scripts/collect-info.sh scripts/entrypoint.sh /usr/local/bin/
+
 USER root
-RUN chmod +x /etc/welcome.sh
+RUN chmod +x /etc/welcome.sh /usr/local/bin/collect-info.sh /usr/local/bin/entrypoint.sh && \
+    mkdir -p /opt/hermes/info && \
+    chown -R ${HERMES_USER}:${HERMES_USER} /opt/hermes
 USER ${HERMES_USER}
+
 RUN { echo ''; echo '# Executa o script de boas-vindas'; echo '/etc/welcome.sh'; } >> ${HOME}/.bashrc
 
-# Comando padrão
+# Captura o inventário de versões/bibliotecas (snapshot do build) para o info server
+RUN IMAGE_VERSION="${IMAGE_VERSION}" /usr/local/bin/collect-info.sh /opt/hermes/info/versions.json
+
+EXPOSE ${HERMES_INFO_PORT}
+
+# Healthcheck bate no endpoint /health do servidor de info
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl -fsS "http://localhost:${HERMES_INFO_PORT}/health" || exit 1
+
+# Entrypoint sobe o info server em background; CMD mantém o container vivo
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["tail", "-f", "/dev/null"]
