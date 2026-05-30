@@ -1,0 +1,48 @@
+# ============================================================================
+#  Segredos e variáveis de ambiente — NUNCA commitar
+# ============================================================================
+.env
+.env.*
+!.env.example
+
+# Chaves, certificados e tokens soltos
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ecdsa*
+id_ed25519*
+*.crt
+
+# ============================================================================
+#  user_data/ — credenciais, sessões e código do usuário (stateful, local)
+#  Mantemos apenas os templates/placeholders versionados.
+# ============================================================================
+/user_data/.ssh/*
+!/user_data/.ssh/README.md
+/user_data/.config/*
+/user_data/.aws/*
+/user_data/.oci/*
+/user_data/browser_session/*
+/user_data/workspace/
+/user_data/workspaces/*
+!/user_data/**/.gitkeep
+
+# ============================================================================
+#  agent_data/ — estado do agente (mantém só a config de exemplo)
+# ============================================================================
+/agent_data/*
+!/agent_data/config/
+/agent_data/config/*
+!/agent_data/config/config.yaml
+
+# ============================================================================
+#  SO / editores
+# ============================================================================
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/

@@ -1,0 +1,6 @@
+# Hermes Agent Configuration
+
+# Configuração para persistir a sessão do browser
+tools:
+  browser:
+    user_data_dir: /home/hermes/browser_session

@@ -1,0 +1,29 @@
+# ============================================================================
+#  .dockerignore — controla o que vai para o CONTEXTO de build.
+#  Segurança: impede que segredos e dados do usuário entrem na imagem/cache.
+#  Tamanho: reduz o contexto enviado ao daemon e evita invalidar cache à toa.
+# ============================================================================
+
+# Segredos e dados do usuário (NUNCA devem ir para o contexto de build)
+.env
+.env.*
+!.env.example
+user_data/
+agent_data/
+
+# Metadados de versionamento e CI (não são necessários no build)
+.git/
+.github/
+.gitignore
+.dockerignore
+
+# Documentação e arquivos de projeto (não usados pela imagem)
+docs/
+*.md
+!welcome.sh
+
+# Artefatos de SO / editores
+.DS_Store
+*.swp
+.idea/
+.vscode/

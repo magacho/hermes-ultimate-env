@@ -1,0 +1,40 @@
+services:
+  hermes:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hermes_dev_env
+    # Carrega as variáveis do arquivo .env no container.
+    # `required: false` evita erro se o usuário ainda não criou o .env.
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      # Estado interno do agente
+      - ./agent_data:/home/hermes/.hermes
+      # Dados do usuário: chaves, git, sessões e workspaces
+      - ./user_data/.ssh:/home/hermes/.ssh
+      - ./user_data/.gitconfig:/home/hermes/.gitconfig
+      - ./user_data/browser_session:/home/hermes/browser_session
+      - ./user_data/workspaces:/home/hermes/workspaces
+      # Persistência dos LOGINS interativos das CLIs de nuvem/DevOps
+      # (gcloud, gh, gemini ficam em ~/.config; aws e oci em seus próprios dirs)
+      - ./user_data/.config:/home/hermes/.config
+      - ./user_data/.aws:/home/hermes/.aws
+      - ./user_data/.oci:/home/hermes/.oci
+    # Hardening opcional (ver docs/SECURITY.md):
+    # `no-new-privileges` impede escalonamento de privilégios, MAS desativa o
+    # `sudo` do usuário hermes. Habilite apenas se não precisar de sudo no runtime.
+    # security_opt:
+    #   - no-new-privileges:true
+    # Mantém o container rodando em segundo plano
+    stdin_open: true
+    tty: true
+    # Opcional: para usar a GPU da máquina host
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
