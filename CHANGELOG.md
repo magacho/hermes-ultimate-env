@@ -18,6 +18,9 @@ e o projeto adota [SemVer](https://semver.org/lang/pt-BR/).
     **gate de Trivy (falha em CVE CRITICAL)**, push no GHCR e GitHub Release
     (beta = pre-release).
   - Substitui o antigo `build-and-push.yml`.
+  - **Publicação também no Docker Hub** (além do GHCR), condicional à variável de repo
+    `DOCKERHUB_REPO` (+ secrets `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN`). Permite
+    `docker pull` em qualquer lugar.
 - `scripts/smoke-test.sh` reutilizável (CI + local).
 - Templates de issue do GitHub (`.github/ISSUE_TEMPLATE/`: feature/bug) e `docs/CICD.md`.
 - Bloco de `ARG` no topo do `Dockerfile` como fonte única de verdade das versões.

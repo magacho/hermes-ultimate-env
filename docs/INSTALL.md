@@ -59,18 +59,22 @@ docker buildx build \
 
 ---
 
-## Opção C — Pull da imagem publicada no GHCR
+## Opção C — Pull da imagem publicada
 
-Após o CI publicar (ver abaixo):
+A release publica nos dois registries (use o que preferir):
 
 ```bash
+# Docker Hub (mais universal)
+docker pull <DOCKERHUB_REPO>:latest        # ex.: magacho/hermes-ultimate-env:latest
+docker pull <DOCKERHUB_REPO>:0.1.0
+
+# GHCR
 docker pull ghcr.io/<owner>/hermes-ultimate-env:latest
-# ou uma versão fixa
-docker pull ghcr.io/<owner>/hermes-ultimate-env:v1.0.0
+docker pull ghcr.io/<owner>/hermes-ultimate-env:0.1.0
 ```
 
 Para usar a imagem publicada com o compose, troque o bloco `build:` por
-`image: ghcr.io/<owner>/hermes-ultimate-env:latest` no `docker-compose.yml`.
+`image: <DOCKERHUB_REPO>:latest` (ou a ref do GHCR) no `docker-compose.yml`.
 
 ---
 

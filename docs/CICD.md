@@ -25,10 +25,19 @@ Fluxo:
 5. **Build multi-arch (amd64+arm64)** e **push no GHCR** — só após passar no gate.
 6. **GitHub Release** (beta marcado como *pre-release*, com notas geradas).
 
+## Registries de destino
+
+A imagem é publicada em **dois** registries (use o que preferir — a imagem é a mesma):
+
+- **GHCR** (`ghcr.io/<owner>/<repo>`): sempre, autenticado pelo `GITHUB_TOKEN` (sem config).
+- **Docker Hub** (`docker.io/<DOCKERHUB_REPO>`): se a variável `DOCKERHUB_REPO` estiver
+  configurada (ver [Configuração](#permissões--configuração)). Pensado para usar "em qualquer
+  lugar" com um `docker pull` simples.
+
 ## Convenção de versões e tags
 
-| Tag Git | Canal | Tags publicadas no GHCR | GitHub Release |
-|---------|-------|-------------------------|----------------|
+| Tag Git | Canal | Tags publicadas (em cada registry) | GitHub Release |
+|---------|-------|------------------------------------|----------------|
 | `vX.Y.Z` | estável | `X.Y.Z`, `X.Y`, `latest` | release normal |
 | `bX.Y.Z` | beta | `X.Y.Z-beta`, `beta` | *pre-release* |
 
@@ -57,13 +66,28 @@ Ou pela aba **Actions → Release → Run workflow**, informando a tag.
 
 ## Permissões / configuração
 
-Nenhum segredo manual é necessário — o pipeline usa o `GITHUB_TOKEN` automático:
-- `packages: write` → push no GHCR
-- `security-events: write` → upload do SARIF
-- `contents: write` → criar o GitHub Release
+### GHCR — automático
+Usa o `GITHUB_TOKEN` (sem segredos manuais):
+- `packages: write` → push no GHCR · `security-events: write` → SARIF · `contents: write` → Release
 
-A imagem publicada fica em `ghcr.io/<owner>/<repo>`. Para torná-la pública, ajuste a
-visibilidade do *package* nas configurações do GHCR.
+Para tornar a imagem pública, ajuste a visibilidade do *package* nas configurações do GHCR.
+
+### Docker Hub — configuração necessária (uma vez)
+Em **Settings → Secrets and variables → Actions** do repositório:
+
+| Tipo | Nome | Valor |
+|------|------|-------|
+| Variable | `DOCKERHUB_REPO` | repositório destino, ex.: `magacho/hermes-ultimate-env` |
+| Secret | `DOCKERHUB_USERNAME` | seu usuário do Docker Hub |
+| Secret | `DOCKERHUB_TOKEN` | *Access Token* do Docker Hub (Account Settings → Security) com permissão de escrita |
+
+> Enquanto `DOCKERHUB_REPO` não estiver definida, o pipeline **pula** o Docker Hub e publica
+> só no GHCR (sem falhar). Crie o repositório no Docker Hub antes da primeira release.
+
+```bash
+# Após configurar, qualquer máquina pode:
+docker pull <DOCKERHUB_REPO>:latest      # ex.: docker pull magacho/hermes-ultimate-env:latest
+```
 
 ## Processo de novas features
 
