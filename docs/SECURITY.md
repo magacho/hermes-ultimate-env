@@ -95,7 +95,26 @@ environment:
 
 - Prefira consumir por **digest fixo** (`@sha256:…`) em vez de só `:latest`.
 - O CI publica via `GITHUB_TOKEN` com escopo `packages: write` — sem segredos extras.
-- Considere assinar a imagem (cosign) numa fase futura, se a distribuição crescer.
+- A release assina a imagem com **cosign keyless** usando OIDC do GitHub Actions
+  (`id-token: write`), sem chave privada armazenada no repositório.
+
+### Como verificar assinatura (consumidor)
+
+```bash
+IMAGE=ghcr.io/<owner>/<repo>:latest
+OWNER=<owner>
+REPO=<repo>
+
+cosign verify "$IMAGE" \
+  --certificate-identity-regexp "^https://github.com/${OWNER}/${REPO}/.github/workflows/release.yml@refs/tags/.+$" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+Se preferir máxima imutabilidade, valide por digest:
+
+```bash
+cosign verify "ghcr.io/<owner>/<repo>@sha256:<digest>"
+```
 
 ---
 

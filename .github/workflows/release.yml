@@ -27,6 +27,7 @@ jobs:
       contents: write          # criar GitHub Release
       packages: write          # push no GHCR
       security-events: write   # upload do SARIF
+      id-token: write          # OIDC para assinatura keyless (cosign)
     steps:
       - uses: actions/checkout@v4
         with:
@@ -110,6 +111,7 @@ jobs:
 
       # 4) Build multi-arch + push no GHCR (só após passar no gate)
       - name: Build & push (linux/amd64, linux/arm64)
+        id: build_push
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -119,6 +121,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
+
+      - name: Instalar cosign
+        uses: sigstore/cosign-installer@v3.8.1
+
+      - name: Assinar imagem publicada (cosign keyless)
+        env:
+          COSIGN_EXPERIMENTAL: "false"
+        run: |
+          set -euo pipefail
+          cosign sign --yes "${{ steps.meta.outputs.image }}@${{ steps.build_push.outputs.digest }}"
 
       # 5) GitHub Release (beta = pre-release)
       - name: Criar GitHub Release

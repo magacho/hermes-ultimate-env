@@ -23,7 +23,8 @@ Fluxo:
 3. **Trivy (SARIF)** → relatório na aba *Security* (não bloqueia).
 4. **Trivy (gate)** → **falha a release se houver CVE `CRITICAL`** (corrigível).
 5. **Build multi-arch (amd64+arm64)** e **push no GHCR** — só após passar no gate.
-6. **GitHub Release** (beta marcado como *pre-release*, com notas geradas).
+6. **Assinatura da imagem com cosign (keyless via OIDC do GitHub)**.
+7. **GitHub Release** (beta marcado como *pre-release*, com notas geradas).
 
 ## Convenção de versões e tags
 
@@ -50,6 +51,8 @@ Ou pela aba **Actions → Release → Run workflow**, informando a tag.
 
 - **Scan de imagem:** Trivy em toda CI (informativo) e em toda release (com gate em `CRITICAL`).
   Resultados aparecem em **Security → Code scanning alerts** (formato SARIF).
+- **Assinatura de imagem:** toda imagem publicada no GHCR é assinada com **cosign keyless**
+  usando o OIDC do GitHub Actions.
 - **Segredos:** `gitleaks` em cada PR/push; `.gitignore` + `.dockerignore` impedem que segredos
   entrem no repo ou na imagem (ver [SECURITY.md](SECURITY.md)).
 - **Lint:** `hadolint` sinaliza más práticas no `Dockerfile`.
@@ -61,9 +64,26 @@ Nenhum segredo manual é necessário — o pipeline usa o `GITHUB_TOKEN` automá
 - `packages: write` → push no GHCR
 - `security-events: write` → upload do SARIF
 - `contents: write` → criar o GitHub Release
+- `id-token: write` → emitir token OIDC para assinatura keyless com cosign
 
 A imagem publicada fica em `ghcr.io/<owner>/<repo>`. Para torná-la pública, ajuste a
 visibilidade do *package* nas configurações do GHCR.
+
+## Verificação da assinatura da imagem (cosign)
+
+Após uma release, valide a assinatura keyless da imagem no GHCR:
+
+```bash
+IMAGE=ghcr.io/<owner>/<repo>:latest
+OWNER=<owner>
+REPO=<repo>
+
+cosign verify "$IMAGE" \
+  --certificate-identity-regexp "^https://github.com/${OWNER}/${REPO}/.github/workflows/release.yml@refs/tags/.+$" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+> Para beta, troque a tag por `:beta`; para versões fixas, use `:X.Y.Z`/`:X.Y.Z-beta`.
 
 ## Processo de novas features
 
