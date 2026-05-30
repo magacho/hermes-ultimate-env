@@ -41,6 +41,12 @@ e o projeto adota [SemVer](https://semver.org/lang/pt-BR/).
 - `env_file` marcado como `required: false` (não falha se o `.env` ainda não existe).
 - Opção de hardening `no-new-privileges` documentada (comentada) no compose.
 
+### Segurança (assinatura de imagem)
+- **Assinatura keyless com cosign** (OIDC do GitHub Actions, `id-token: write`) em toda release,
+  por digest, em **cada registry (GHCR e Docker Hub)** — sem chave armazenada. Incorpora a
+  proposta do PR #6 (Copilot) corrigida para o pipeline multi-registry atual; docs de
+  verificação em `CICD.md` e `SECURITY.md`. (issue #3)
+
 ### Tamanho da imagem (redução conservadora)
 - Playwright instala **apenas Chromium** (`playwright install chromium`) em vez de todos os
   navegadores.

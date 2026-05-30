@@ -92,11 +92,31 @@ environment:
 
 ---
 
-## 6. Proveniência da imagem (ao publicar no GHCR)
+## 6. Proveniência e assinatura da imagem
 
 - Prefira consumir por **digest fixo** (`@sha256:…`) em vez de só `:latest`.
 - O CI publica via `GITHUB_TOKEN` com escopo `packages: write` — sem segredos extras.
-- Considere assinar a imagem (cosign) numa fase futura, se a distribuição crescer.
+- **Assinatura:** toda imagem de release é assinada com **cosign keyless** usando o OIDC do
+  GitHub Actions (`id-token: write`), por digest, em cada registry (GHCR e Docker Hub). Não há
+  chave privada armazenada no repositório.
+
+### Como verificar a assinatura (consumidor)
+
+```bash
+IMAGE=ghcr.io/<owner>/<repo>:latest      # ou docker.io/<DOCKERHUB_REPO>:latest
+
+cosign verify "$IMAGE" \
+  --certificate-identity-regexp "^https://github.com/<owner>/<repo>/.github/workflows/release.yml@refs/tags/.+$" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+Para máxima imutabilidade, verifique por digest:
+
+```bash
+cosign verify "ghcr.io/<owner>/<repo>@sha256:<digest>" \
+  --certificate-identity-regexp "^https://github.com/<owner>/<repo>/.github/workflows/release.yml@refs/tags/.+$" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
 
 ---
 

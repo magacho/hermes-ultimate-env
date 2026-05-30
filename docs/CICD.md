@@ -22,8 +22,9 @@ Fluxo:
 2. **Build amd64 local** como alvo do scan.
 3. **Trivy (SARIF)** → relatório na aba *Security* (não bloqueia).
 4. **Trivy (gate)** → **falha a release se houver CVE `CRITICAL`** (corrigível).
-5. **Build multi-arch (amd64+arm64)** e **push no GHCR** — só após passar no gate.
-6. **GitHub Release** (beta marcado como *pre-release*, com notas geradas).
+5. **Build multi-arch (amd64+arm64)** e **push no GHCR/Docker Hub** — só após passar no gate.
+6. **Assinatura com cosign (keyless via OIDC)** — assina a imagem por digest em cada registry.
+7. **GitHub Release** (beta marcado como *pre-release*, com notas geradas).
 
 > Os builds recebem `--build-arg IMAGE_VERSION=<versão>`, que alimenta o servidor de
 > health/info embutido (`GET /` e `/release.json`) — assim a página da release mostra a
@@ -63,6 +64,8 @@ Ou pela aba **Actions → Release → Run workflow**, informando a tag.
 
 - **Scan de imagem:** Trivy em toda CI (informativo) e em toda release (com gate em `CRITICAL`).
   Resultados aparecem em **Security → Code scanning alerts** (formato SARIF).
+- **Assinatura de imagem:** toda imagem de release é assinada com **cosign keyless** (OIDC do
+  GitHub Actions, sem chave armazenada), por digest, em cada registry (GHCR e Docker Hub).
 - **Segredos:** `gitleaks` em cada PR/push; `.gitignore` + `.dockerignore` impedem que segredos
   entrem no repo ou na imagem (ver [SECURITY.md](SECURITY.md)).
 - **Lint:** `hadolint` sinaliza más práticas no `Dockerfile`.
@@ -73,6 +76,7 @@ Ou pela aba **Actions → Release → Run workflow**, informando a tag.
 ### GHCR — automático
 Usa o `GITHUB_TOKEN` (sem segredos manuais):
 - `packages: write` → push no GHCR · `security-events: write` → SARIF · `contents: write` → Release
+- `id-token: write` → OIDC para assinatura keyless com cosign (sem chave armazenada)
 
 Para tornar a imagem pública, ajuste a visibilidade do *package* nas configurações do GHCR.
 
@@ -92,6 +96,21 @@ Em **Settings → Secrets and variables → Actions** do repositório:
 # Após configurar, qualquer máquina pode:
 docker pull <DOCKERHUB_REPO>:latest      # ex.: docker pull magacho/hermes-ultimate-env:latest
 ```
+
+## Verificação da assinatura (cosign)
+
+As imagens de release são assinadas com **cosign keyless**. Para verificar (consumidor):
+
+```bash
+IMAGE=ghcr.io/<owner>/<repo>:latest      # ou docker.io/<DOCKERHUB_REPO>:latest
+
+cosign verify "$IMAGE" \
+  --certificate-identity-regexp "^https://github.com/<owner>/<repo>/.github/workflows/release.yml@refs/tags/.+$" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+```
+
+> Para beta, troque a tag por `:beta` (ou `:X.Y.Z-beta`). Para máxima imutabilidade, verifique
+> por digest: `cosign verify "ghcr.io/<owner>/<repo>@sha256:<digest>" ...`.
 
 ## Processo de novas features
 
