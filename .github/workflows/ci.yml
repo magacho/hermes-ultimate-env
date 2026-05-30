@@ -60,7 +60,7 @@ jobs:
           docker run --rm -v "$PWD/scripts:/scripts:ro" \
             --entrypoint bash hermes-ci:test /scripts/smoke-test.sh
       - name: Trivy (SARIF informativo)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: hermes-ci:test
           format: sarif
