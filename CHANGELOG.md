@@ -41,6 +41,13 @@ e o projeto adota [SemVer](https://semver.org/lang/pt-BR/).
 - `env_file` marcado como `required: false` (não falha se o `.env` ainda não existe).
 - Opção de hardening `no-new-privileges` documentada (comentada) no compose.
 
+### Integrações do hermes-agent (expandidas)
+- Adicionados extras: **mensageria** (`messaging` = Telegram/Discord/Slack, + `matrix`, `wecom`,
+  `dingtalk`, `feishu`), **busca/scraping** (`exa`, `firecrawl`, `parallel-web`) e **`honcho`**.
+- `libolm-dev` adicionado à camada apt (necessário para `mautrix[encryption]`/`python-olm` do Matrix).
+- Set final: `hermes-agent[all,anthropic,messaging,matrix,wecom,dingtalk,feishu,exa,firecrawl,parallel-web,honcho]`.
+- Resolução validada em venv limpo antes do build (sem conflito; imports de olm/mautrix OK).
+
 ### CI/CD (performance de build)
 - **Release reescrita em jobs nativos paralelos** (sem QEMU): `meta` → `build-amd64`
   (x86, com Trivy gate) ‖ `build-arm64` (runner `ubuntu-24.04-arm` nativo) → `merge`

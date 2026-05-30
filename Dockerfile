@@ -63,6 +63,7 @@ RUN set -eux; \
       curl wget gpg-agent gnupg git openssh-client sudo \
       tar gzip unzip xz-utils which build-essential \
       httpie \
+      libolm-dev \
       python3 python3-venv python3-dev pipx; \
     # Repositório Amazon Corretto
     wget -qO- https://apt.corretto.aws/corretto.key | gpg --dearmor -o /usr/share/keyrings/corretto-keyring.gpg; \
@@ -166,12 +167,14 @@ RUN curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/ins
 # ----------------------------------------------------------------------------
 # 6) Hermes Agent, Playwright e Oracle Cloud CLI — cada um em venv pipx isolado
 #    pipx é o método recomendado para CLIs Python e respeita o PEP 668 do Noble.
-#    hermes-agent[all,anthropic]: extra "all" do autor + suporte a Claude/Anthropic.
+#    hermes-agent[all,anthropic,messaging,matrix,wecom,dingtalk,feishu,exa,firecrawl,
+#    parallel-web,honcho]: extra "all" + Claude + mensageria + busca/scraping + Honcho.
+#    (matrix/encryption exige libolm-dev, instalado na camada apt.)
 #    Playwright fica em venv próprio (hermes-agent não depende de Playwright).
 # ----------------------------------------------------------------------------
 # Evita que pip/pipx deixem cache na imagem (redução de tamanho)
 ENV PIP_NO_CACHE_DIR=1
-RUN pipx install "hermes-agent[all,anthropic]==${HERMES_AGENT_VERSION}" && \
+RUN pipx install "hermes-agent[all,anthropic,messaging,matrix,wecom,dingtalk,feishu,exa,firecrawl,parallel-web,honcho]==${HERMES_AGENT_VERSION}" && \
     pipx install "playwright==${PLAYWRIGHT_VERSION}" && \
     pipx inject playwright "playwright-stealth==${PLAYWRIGHT_STEALTH_VERSION}" && \
     pipx install "oci-cli==${OCI_CLI_VERSION}"

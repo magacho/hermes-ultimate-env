@@ -55,7 +55,7 @@ _Última revisão das versões: 2026-05-30._
 
 | Componente | Versão | Observação |
 |------------|--------|------------|
-| hermes-agent | `0.15.2` | `pipx install "hermes-agent[all,anthropic]"` (última estável; Nous Research) |
+| hermes-agent | `0.15.2` | `pipx install "hermes-agent[all,anthropic,messaging,matrix,wecom,dingtalk,feishu,exa,firecrawl,parallel-web,honcho]"` (Nous Research). Matrix exige `libolm-dev` (camada apt). |
 | playwright | `1.60.0` | venv pipx próprio (separado do hermes) |
 | playwright-stealth | `2.0.3` | injetado no venv do Playwright (lib) |
 

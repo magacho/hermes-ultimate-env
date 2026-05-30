@@ -8,8 +8,9 @@ a coluna **Como é instalado** é relevante para reprodutibilidade e segurança 
 
 | Ferramenta | Comando | Como é instalado |
 |------------|---------|------------------|
-| Hermes Agent | (entrypoint do pacote) | `pipx install hermes-agent==…` |
-| Playwright + stealth | `playwright` | injetado no venv do hermes via `pipx inject` + `playwright install --with-deps` |
+| Hermes Agent | (entrypoint do pacote) | `pipx install "hermes-agent[all,anthropic,messaging,matrix,wecom,dingtalk,feishu,exa,firecrawl,parallel-web,honcho]"` |
+| ↳ Integrações | — | modelos (Anthropic/OpenAI), MCP, Web/FastAPI, Google, YouTube, **mensageria** (Telegram, Discord, Slack, Matrix, WeCom, DingTalk, Feishu), **busca/scraping** (Exa, Firecrawl, Parallel-web), **Honcho** |
+| Playwright + stealth | `playwright` | venv pipx próprio + `playwright install --with-deps chromium` |
 
 ## Linguagens e Runtimes
 
