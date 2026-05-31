@@ -41,6 +41,12 @@ e o projeto adota [SemVer](https://semver.org/lang/pt-BR/).
 - `env_file` marcado como `required: false` (não falha se o `.env` ainda não existe).
 - Opção de hardening `no-new-privileges` documentada (comentada) no compose.
 
+### Voz (STT + TTS)
+- Extras `voice` (faster-whisper — transcrição de áudio/STT) e `edge-tts` (TTS grátis) adicionados
+  ao hermes-agent; libs de sistema `ffmpeg` e `libportaudio2` no apt.
+- Caso de uso: mandar áudio para o agente (transcrito) e receber resposta em voz (mãos-livres).
+- Resolução validada em venv limpo (imports faster_whisper/sounddevice/edge_tts OK).
+
 ### Ferramentas Google (conta pessoal)
 - Adicionadas CLIs: **himalaya** 1.2.0 (Gmail), **gcalcli** 4.5.1 (Calendar, via pipx) e
   **gdrive** 3.9.1 (Drive — **só amd64**; upstream não publica binário arm64).
