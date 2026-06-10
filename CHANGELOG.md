@@ -41,6 +41,12 @@ e o projeto adota [SemVer](https://semver.org/lang/pt-BR/).
 - `env_file` marcado como `required: false` (não falha se o `.env` ainda não existe).
 - Opção de hardening `no-new-privileges` documentada (comentada) no compose.
 
+### Browser do hermes (engine local habilitado)
+- **Playwright + playwright-stealth injetados no venv do hermes-agent** (`pipx inject`), para o
+  `browser_tool` (que faz `import playwright`) funcionar — antes o playwright só existia num venv
+  separado (CLI), e o engine local de browser não subia. Chromium compartilhado via
+  `~/.cache/ms-playwright`. Permite ao agente navegar com sessão (ex.: `storage_state`).
+
 ### Voz (STT + TTS)
 - Extras `voice` (faster-whisper — transcrição de áudio/STT) e `edge-tts` (TTS grátis) adicionados
   ao hermes-agent; libs de sistema `ffmpeg` e `libportaudio2` no apt.

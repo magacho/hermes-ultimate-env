@@ -191,11 +191,14 @@ RUN curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/v${NVM_VERSION}/ins
 #    parallel-web,honcho,voice,edge-tts]: "all" + Claude + mensageria + busca + Honcho
 #    + voz (STT faster-whisper) + TTS grátis (edge-tts).
 #    Libs de sistema: libolm-dev (matrix), ffmpeg + libportaudio2 (voz) — na camada apt.
-#    Playwright fica em venv próprio (hermes-agent não depende de Playwright).
+#    Playwright é INJETADO no venv do hermes (o browser_tool dele faz `import
+#    playwright`) E também fica num venv próprio (CLI `playwright` standalone).
+#    O chromium é compartilhado via ~/.cache/ms-playwright.
 # ----------------------------------------------------------------------------
 # Evita que pip/pipx deixem cache na imagem (redução de tamanho)
 ENV PIP_NO_CACHE_DIR=1
 RUN pipx install "hermes-agent[all,anthropic,messaging,matrix,wecom,dingtalk,feishu,exa,firecrawl,parallel-web,honcho,voice,edge-tts]==${HERMES_AGENT_VERSION}" && \
+    pipx inject hermes-agent "playwright==${PLAYWRIGHT_VERSION}" "playwright-stealth==${PLAYWRIGHT_STEALTH_VERSION}" && \
     pipx install "playwright==${PLAYWRIGHT_VERSION}" && \
     pipx inject playwright "playwright-stealth==${PLAYWRIGHT_STEALTH_VERSION}" && \
     pipx install "oci-cli==${OCI_CLI_VERSION}" && \

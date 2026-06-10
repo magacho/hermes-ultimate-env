@@ -64,8 +64,8 @@ _Última revisão das versões: 2026-05-30._
 | Componente | Versão | Observação |
 |------------|--------|------------|
 | hermes-agent | `0.15.2` | `pipx install "hermes-agent[all,anthropic,messaging,matrix,wecom,dingtalk,feishu,exa,firecrawl,parallel-web,honcho,voice,edge-tts]"` (Nous Research). Libs de sistema: `libolm-dev` (matrix), `ffmpeg`+`libportaudio2` (voz). |
-| playwright | `1.60.0` | venv pipx próprio (separado do hermes) |
-| playwright-stealth | `2.0.3` | injetado no venv do Playwright (lib) |
+| playwright | `1.60.0` | injetado no venv do hermes (browser_tool) + venv próprio (CLI) |
+| playwright-stealth | `2.0.3` | injetado nos venvs do hermes e do Playwright |
 
 ## Utilitários
 
